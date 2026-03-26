@@ -1,0 +1,14 @@
+[Unit]
+Description=gps-relay WebSocket relay server
+After=network.target
+
+[Service]
+Type=simple
+User=luke
+WorkingDirectory=/home/luke/gps-relay
+ExecStart=/home/luke/gps-relay/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8767
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
