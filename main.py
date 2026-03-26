@@ -11,6 +11,7 @@ to all other connections sharing the same token, then discarded.
 
 Security:
     - Tokens shorter than MIN_TOKEN_LENGTH characters are rejected (4008).
+    - Each token is limited to MAX_CONNECTIONS_PER_TOKEN simultaneous connections (4009).
     - Each connection is limited to RATE_LIMIT messages per RATE_WINDOW seconds.
       Exceeding the limit closes the connection (4029).
 """
@@ -28,6 +29,7 @@ from fastapi.responses import JSONResponse
 # ---------------------------------------------------------------------------
 
 MIN_TOKEN_LENGTH = 32       # reject short / guessable tokens
+MAX_CONNECTIONS_PER_TOKEN = 3  # reject if token already has too many connections
 RATE_LIMIT = 10             # max messages per connection per window
 RATE_WINDOW = 30            # seconds
 
@@ -78,6 +80,11 @@ async def relay(websocket: WebSocket, token: str) -> None:
     # Fix 1: reject short tokens before accepting the connection
     if len(token) < MIN_TOKEN_LENGTH:
         await websocket.close(code=4008, reason="Token too short (min 32 chars).")
+        return
+
+    # Fix 3: reject if token already has too many connections
+    if len(_connections[token]) >= MAX_CONNECTIONS_PER_TOKEN:
+        await websocket.close(code=4009, reason="Too many connections for this token.")
         return
 
     await websocket.accept()
